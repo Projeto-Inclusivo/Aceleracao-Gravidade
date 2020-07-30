@@ -82,7 +82,7 @@ void loop() {
       lcd.begin(16, 2);
       lcd.print("Voce Selecionou");
       lcd.setCursor(0, 1);
-      lcd.println("Altura de 30cm");
+      lcd.println("Altura de 10cm");
       leitorSD.play("alt10.wav");
       while (leitorSD.isPlaying());
       fim = 1;
