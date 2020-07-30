@@ -1,0 +1,208 @@
+
+/*POS GRADUACAO ENSINO DE CIENCIA COM ENFASE EM FISICA
+  INSTITUTO FEDERAL DE CIÃŠNCIA E TECNOLOGIA DO ESPIRITO SANTO
+  PRODUTO DESENVOLVIDO POR: LUAN LAMON MACHADO
+
+  Programa destinado a inclusão.
+  Experimento de baixo custo para alunos com deficiencia visual*/
+
+#include<TMRpcm.h>
+#include<SPI.h>
+#include<SD.h>
+#define SD_ChipSelectPin 4
+TMRpcm leitorSD;
+#include <LiquidCrystal.h>
+
+#define button_one A0
+#define button_two A1
+#define button_three A2
+
+int alt_um = 10;
+int alt_dois = 20;
+int alt_tres = 30;
+
+int fim = 0;
+int FIM = 0;
+const int sensorSUP = 3;
+const int sensorINF = 2;
+int estadoSUP = 0;
+int medindo = 0;
+int caiu = 0;
+int caindo;
+double Altura;
+double g;
+double G;
+
+String gravity;
+
+unsigned long startTime;
+unsigned long stopTime;
+LiquidCrystal lcd(10, 8, 7, 5, A3, A4);
+
+void setup() {
+
+  Serial.begin(9600);
+  pinMode(sensorSUP, INPUT);
+  pinMode(sensorINF, INPUT);
+  attachInterrupt(1, START, FALLING);
+  attachInterrupt(0, STOP, RISING);
+
+  leitorSD.speakerPin = 9;
+  if (!SD.begin(SD_ChipSelectPin)) {
+    Serial.println("Falha na leitura do Cartao SD");
+    return;
+  }
+  leitorSD.setVolume(5);
+  lcd.begin(16, 2);
+  // Print a message to the LCD.
+  lcd.print("Bem Vindo!!!");
+  lcd.setCursor(0, 1);
+  lcd.println("Fisica Experimental");
+  leitorSD.play("ola.wav");
+  while (leitorSD.isPlaying());
+}
+
+
+void loop() {
+  while (digitalRead(button_one) == LOW && digitalRead(button_two) == LOW && digitalRead(button_three) == LOW && fim == 0) {
+
+    lcd.begin(16, 2);
+    // Print a message to the LCD.
+    lcd.print("Aguardando");
+    lcd.setCursor(0, 1);
+    lcd.println("Selecionar Altura");
+    leitorSD.play("ajuste.wav");
+    while (leitorSD.isPlaying());
+  }
+
+
+  do {
+    if ( digitalRead(button_one) == HIGH) {
+      Altura = alt_um;
+      lcd.begin(16, 2);
+      lcd.print("Voce Selecionou");
+      lcd.setCursor(0, 1);
+      lcd.println("Altura de 30cm");
+      leitorSD.play("alt10.wav");
+      while (leitorSD.isPlaying());
+      fim = 1;
+    }
+
+    if ( digitalRead(button_two) == HIGH) {
+      Altura = alt_dois;
+      lcd.begin(16, 2);
+      lcd.print("Voce Selecionou");
+      lcd.setCursor(0, 1);
+      lcd.println("Altura de 20cm");
+      leitorSD.play("alt20.wav");
+      while (leitorSD.isPlaying());
+      fim = 1;
+    }
+
+    if ( digitalRead(button_three) == HIGH) {
+      Altura = alt_tres;
+      lcd.begin(16, 2);
+      lcd.print("Voce Selecionou");
+      lcd.setCursor(0, 1);
+      lcd.println("Altura de 30cm");
+      leitorSD.play("alt30.wav");
+      while (leitorSD.isPlaying());
+      fim = 1;
+    }
+
+    delay(1000);
+
+  }  while (fim != 1);
+
+
+  while ((FIM != 1) && (medindo == 0)) {
+    if ( digitalRead(sensorSUP) == HIGH ) {
+      estadoSUP = 1;
+      lcd.begin(16, 2);
+      lcd.print("Esfera inserida");
+      leitorSD.play("inserida.wav");
+      while (leitorSD.isPlaying());
+      FIM = 1;
+    } else {
+      lcd.begin(16, 2); // Print a message to the LCD.
+      lcd.print("Insira a Esfera");
+      leitorSD.play("inserir.wav");
+      while (leitorSD.isPlaying());
+    }
+    delay(1000);
+  }
+
+
+  if (digitalRead(sensorSUP) == HIGH && (digitalRead(sensorINF)) == LOW && estadoSUP == 1) {
+    medindo = 1;
+    lcd.begin(16, 2);
+    lcd.println("Pronto para Medir");
+    lcd.setCursor(0, 1);
+    lcd.print("Disparar Esfera");
+    leitorSD.play("disparar.wav");
+    while (leitorSD.isPlaying());
+  }
+
+  if (caindo == 1 && digitalRead(sensorSUP) == LOW) {
+    lcd.begin(16, 2);
+    lcd.print("Esfera Caindo");
+    lcd.setCursor(0, 1);
+    lcd.println("Contanto tempo...");
+    leitorSD.play("queda.wav");
+    while (leitorSD.isPlaying());
+  }
+
+
+  if (caiu == 1) {
+    lcd.begin(16, 2);
+    lcd.print(stopTime);
+    lcd.setCursor(0, 1);
+    lcd.print(" milisegundos (ms)");
+    delay(3000);
+
+    g = 20000 * Altura / (stopTime * stopTime);
+
+    lcd.begin(16, 2);
+    lcd.print("Gravidade Local:");
+    lcd.setCursor(0, 1);
+    lcd.print(g, 16);
+    delay(3000);
+
+    G = 10 * g;
+    gravity = String(int(G));
+    gravity.concat(".wav");
+
+    char nomeArquivo[gravity.length( ) + 1];
+    gravity.toCharArray(nomeArquivo, sizeof(nomeArquivo));
+
+    if (G < 95 || G > 101) {
+      leitorSD.play("erro.wav");
+      while (leitorSD.isPlaying());
+    }
+    else {
+      leitorSD.play(nomeArquivo);
+      while (leitorSD.isPlaying());
+    }
+
+    lcd.begin(16, 2);
+    lcd.print("Pronto para Proxima Medida");
+    delay(2000);
+    fim = 0;
+    FIM = 0;
+    medindo = 0;
+    caiu = 0; caindo = 0;
+  }
+}
+
+
+void START() {
+  startTime = millis();
+  caindo = 1;
+}
+
+
+
+void STOP() {
+  stopTime = ( millis() - startTime);
+  caiu = 1;
+}
